@@ -1,0 +1,308 @@
+name: Build Minimal MPV
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-meson
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-nasm
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-libplacebo
+            mingw-w64-x86_64-libass
+            mingw-w64-x86_64-upx
+            git
+            make
+
+      - name: Build FFmpeg & MPV
+        shell: msys2 {0}
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Pack with Warp
+        shell: msys2 {0}
+        run: |
+          curl -L -o warp-packer.exe https://github.com/dgiagio/warp/releases/download/v0.3.0/windows-x64.warp-packer.exe
+          chmod +x warp-packer.exe
+          mkdir -p dist
+          # Copy DLL dependencies of mpv.exe
+          ldd mpv.exe | grep mingw64 | cut -d' ' -f3 | xargs -I {} cp {} dist/
+          cp mpv.exe dist/
+          cd dist
+          upx -9 *.dll mpv.exe
+          cd ..
+          ./warp-packer.exe --arch windows-x64 --input_dir dist --exec mpv.exe --output mpv-windows.exe
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpv-windows
+          path: mpv-windows.exe
+          retention-days: 1
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build nasm pkg-config libssl-dev libasound2-dev libpulse-dev libjack-dev libplacebo-dev libass-dev git build-essential
+
+      - name: Build FFmpeg
+        run: |
+          mkdir -p src install
+          cd src
+          git clone --depth 1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
+          cd ffmpeg
+          ./configure \
+            --prefix="${{ github.workspace }}/install" \
+            --enable-static \
+            --disable-shared \
+            --enable-small \
+            --enable-stripping \
+            --disable-debug \
+            --disable-doc \
+            --disable-htmlpages \
+            --disable-manpages \
+            --disable-podpages \
+            --disable-txtpages \
+            --disable-vaapi \
+            --disable-vdpau \
+            --disable-avdevice \
+            --disable-hwaccels \
+            --disable-encoders \
+            --disable-muxers \
+            --disable-filters \
+            --enable-filter=aresample,volume,pan \
+            --disable-decoders \
+            --enable-decoder=flac,mp3,aac,alac,vorbis,opus,pcm_s16le,pcm_s24le,pcm_s32le,pcm_f32le \
+            --disable-demuxers \
+            --enable-demuxer=flac,mp3,mov,ogg,wav,aac \
+            --disable-parsers \
+            --enable-parser=flac,mpegaudio,aac,vorbis,opus \
+            --enable-protocol=file,http,https,tcp,tls \
+            --enable-network \
+            --enable-openssl
+          make -j$(nproc)
+          make install
+
+      - name: Build MPV
+        run: |
+          cd src
+          git clone --depth 1 https://github.com/mpv-player/mpv.git mpv
+          cd mpv
+          export PKG_CONFIG_PATH="${{ github.workspace }}/install/lib/pkgconfig:$PKG_CONFIG_PATH"
+          meson setup build \
+            --prefix="${{ github.workspace }}/install" \
+            --buildtype=release \
+            --strip \
+            -Db_lto=true \
+            -Dgpl=true \
+            -Dcplayer=true \
+            -Dlibmpv=false \
+            -Dtests=false \
+            -Dhtml-build=disabled \
+            -Dmanpage-build=disabled \
+            -Dpdf-build=disabled \
+            -Dgl=disabled \
+            -Dvulkan=disabled \
+            -Dd3d11=disabled \
+            -Ddirect3d=disabled \
+            -Dsdl2-audio=disabled \
+            -Dsdl2-gamepad=disabled \
+            -Dsdl2-video=disabled \
+            -Djpeg=disabled \
+            -Dlibavdevice=disabled \
+            -Dlua=disabled \
+            -Djavascript=disabled \
+            -Dcplugins=disabled \
+            -Dsubrandr=disabled \
+            -Dzimg=disabled \
+            -Dvapoursynth=disabled \
+            -Drubberband=disabled \
+            -Dlcms2=disabled \
+            -Dlibarchive=disabled \
+            -Ddvdnav=disabled \
+            -Dlibbluray=disabled \
+            -Duchardet=disabled \
+            -Dcaca=disabled \
+            -Ddrm=disabled \
+            -Dwayland=disabled \
+            -Dx11=disabled \
+            -Dspirv-cross=disabled \
+            -Dshaderc=disabled \
+            -Dd3d-hwaccel=disabled \
+            -Dd3d9-hwaccel=disabled \
+            -Dios-gl=disabled \
+            -Dcocoa=disabled \
+            -Dcoreaudio=disabled \
+            -Dpulse=enabled \
+            -Dpipewire=enabled \
+            -Djack=disabled \
+            -Dopenal=disabled \
+            -Doss-audio=disabled \
+            -Dalsa=enabled \
+            -Dsndio=disabled \
+            -Daudiounit=disabled \
+            -Dswift-build=disabled \
+            -Dplain-gl=disabled \
+            -Dcuda-hwaccel=disabled \
+            -Dcuda-interop=disabled \
+            -Dsixel=disabled \
+            -Degl=disabled \
+            -Dxv=disabled
+          ninja -C build -j$(nproc)
+          cp build/mpv ${{ github.workspace }}/mpv-linux
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpv-linux
+          path: mpv-linux
+          retention-days: 1
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install meson ninja nasm pkg-config openssl libplacebo libass
+
+      - name: Build FFmpeg
+        run: |
+          mkdir -p src install
+          cd src
+          git clone --depth 1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
+          cd ffmpeg
+          ./configure \
+            --prefix="${{ github.workspace }}/install" \
+            --enable-static \
+            --disable-shared \
+            --enable-small \
+            --enable-stripping \
+            --disable-debug \
+            --disable-doc \
+            --disable-htmlpages \
+            --disable-manpages \
+            --disable-podpages \
+            --disable-txtpages \
+            --disable-vaapi \
+            --disable-vdpau \
+            --disable-avdevice \
+            --disable-hwaccels \
+            --disable-encoders \
+            --disable-muxers \
+            --disable-filters \
+            --enable-filter=aresample,volume,pan \
+            --disable-decoders \
+            --enable-decoder=flac,mp3,aac,alac,vorbis,opus,pcm_s16le,pcm_s24le,pcm_s32le,pcm_f32le \
+            --disable-demuxers \
+            --enable-demuxer=flac,mp3,mov,ogg,wav,aac \
+            --disable-parsers \
+            --enable-parser=flac,mpegaudio,aac,vorbis,opus \
+            --enable-protocol=file,http,https,tcp,tls \
+            --enable-network \
+            --enable-openssl \
+            --extra-cflags="-I$(brew --prefix openssl)/include" \
+            --extra-ldflags="-L$(brew --prefix openssl)/lib"
+          make -j$(sysctl -n hw.ncpu)
+          make install
+
+      - name: Build MPV
+        run: |
+          cd src
+          git clone --depth 1 https://github.com/mpv-player/mpv.git mpv
+          cd mpv
+          export PKG_CONFIG_PATH="${{ github.workspace }}/install/lib/pkgconfig:$(brew --prefix openssl)/lib/pkgconfig:$(brew --prefix libplacebo)/lib/pkgconfig:$(brew --prefix libass)/lib/pkgconfig:$PKG_CONFIG_PATH"
+          meson setup build \
+            --prefix="${{ github.workspace }}/install" \
+            --buildtype=release \
+            --strip \
+            -Db_lto=true \
+            -Dgpl=true \
+            -Dcplayer=true \
+            -Dlibmpv=false \
+            -Dtests=false \
+            -Dhtml-build=disabled \
+            -Dmanpage-build=disabled \
+            -Dpdf-build=disabled \
+            -Dgl=disabled \
+            -Dvulkan=disabled \
+            -Dd3d11=disabled \
+            -Ddirect3d=disabled \
+            -Dsdl2-audio=disabled \
+            -Dsdl2-gamepad=disabled \
+            -Dsdl2-video=disabled \
+            -Djpeg=disabled \
+            -Dlibavdevice=disabled \
+            -Dlua=disabled \
+            -Djavascript=disabled \
+            -Dcplugins=disabled \
+            -Dsubrandr=disabled \
+            -Dzimg=disabled \
+            -Dvapoursynth=disabled \
+            -Drubberband=disabled \
+            -Dlcms2=disabled \
+            -Dlibarchive=disabled \
+            -Ddvdnav=disabled \
+            -Dlibbluray=disabled \
+            -Duchardet=disabled \
+            -Dcaca=disabled \
+            -Ddrm=disabled \
+            -Dwayland=disabled \
+            -Dx11=disabled \
+            -Dspirv-cross=disabled \
+            -Dshaderc=disabled \
+            -Dd3d-hwaccel=disabled \
+            -Dd3d9-hwaccel=disabled \
+            -Dios-gl=disabled \
+            -Dcocoa=disabled \
+            -Dcoreaudio=enabled \
+            -Dpulse=disabled \
+            -Dpipewire=disabled \
+            -Djack=disabled \
+            -Dopenal=disabled \
+            -Doss-audio=disabled \
+            -Dalsa=disabled \
+            -Dsndio=disabled \
+            -Daudiounit=enabled \
+            -Dswift-build=disabled \
+            -Dplain-gl=disabled \
+            -Dcuda-hwaccel=disabled \
+            -Dcuda-interop=disabled \
+            -Dsixel=disabled \
+            -Degl=disabled \
+            -Dxv=disabled
+          ninja -C build -j$(sysctl -n hw.ncpu)
+          cp build/mpv ${{ github.workspace }}/mpv-macos
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpv-macos
+          path: mpv-macos
+          retention-days: 1

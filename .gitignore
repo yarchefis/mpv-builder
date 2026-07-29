@@ -1,0 +1,17 @@
+# MSYS2 Environment
+msys64/
+
+# Build and Install Directories
+install/
+src/
+dist/
+
+# Temp files
+*.log
+warp-packer.exe
+mpv_monolith.exe
+mpv.exe
+
+# OS generated files
+.DS_Store
+Thumbs.db
