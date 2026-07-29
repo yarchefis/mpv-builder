@@ -225,6 +225,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew install meson ninja nasm pkg-config openssl libplacebo libass
+          python3 -m pip install --break-system-packages jinja2 || pip3 install jinja2
 
       - name: Build FFmpeg
         run: |
