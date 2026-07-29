@@ -148,6 +148,8 @@ jobs:
             --prefix="${{ github.workspace }}/install" \
             --buildtype=release \
             --strip \
+            -Dc_link_args="-lstdc++" \
+            -Dcpp_link_args="-lstdc++" \
             -Db_lto=true \
             -Dgpl=true \
             -Dcplayer=true \
