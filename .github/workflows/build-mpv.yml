@@ -360,7 +360,9 @@ jobs:
           cp src/mpv/build/mpv ${{ github.workspace }}/dist/mpv-macos
           dylibbundler -b -x ${{ github.workspace }}/dist/mpv-macos -d ${{ github.workspace }}/dist/ -p @executable_path/ -of
           # Remove duplicate rpaths to prevent macOS dyld abort trap: 6
-          install_name_tool -delete_rpath @executable_path/ ${{ github.workspace }}/dist/mpv-macos || true
+          while install_name_tool -delete_rpath @executable_path/ ${{ github.workspace }}/dist/mpv-macos 2>/dev/null; do
+            echo "Deleted duplicate rpath"
+          done
           install_name_tool -add_rpath @executable_path/ ${{ github.workspace }}/dist/mpv-macos
 
       - name: Test macOS binary
