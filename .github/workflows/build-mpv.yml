@@ -1,14 +1,27 @@
 name: Build Minimal MPV
 
 on:
-  push:
-    branches: [ master, main ]
-  pull_request:
-    branches: [ master, main ]
   workflow_dispatch:
+    inputs:
+      build-windows:
+        description: 'Build for Windows'
+        required: true
+        type: boolean
+        default: true
+      build-linux:
+        description: 'Build for Linux'
+        required: true
+        type: boolean
+        default: true
+      build-macos:
+        description: 'Build for macOS'
+        required: true
+        type: boolean
+        default: true
 
 jobs:
   build-windows:
+    if: ${{ inputs.build-windows }}
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -59,6 +72,7 @@ jobs:
           retention-days: 1
 
   build-linux:
+    if: ${{ inputs.build-linux }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -106,6 +120,21 @@ jobs:
             --enable-openssl
           make -j$(nproc)
           make install
+
+      - name: Build libplacebo
+        run: |
+          git clone --depth 1 https://code.videolan.org/videolan/libplacebo.git src/libplacebo
+          cd src/libplacebo
+          meson setup build \
+            --prefix="${{ github.workspace }}/install" \
+            --buildtype=release \
+            -Ddemos=false \
+            -Dvulkan=disabled \
+            -Dopengl=disabled \
+            -Dshaderc=disabled \
+            -Dlcms2=disabled \
+            -Dxxhash=disabled
+          ninja -C build install
 
       - name: Build MPV
         run: |
@@ -183,6 +212,7 @@ jobs:
           retention-days: 1
 
   build-macos:
+    if: ${{ inputs.build-macos }}
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -289,7 +319,7 @@ jobs:
             -Doss-audio=disabled \
             -Dalsa=disabled \
             -Dsndio=disabled \
-            -Daudiounit=enabled \
+            -Daudiounit=disabled \
             -Dswift-build=disabled \
             -Dplain-gl=disabled \
             -Dcuda-hwaccel=disabled \

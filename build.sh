@@ -4,7 +4,7 @@ set -e
 export PATH="/mingw64/bin:$PATH"
 export PKG_CONFIG_PATH="/mingw64/lib/pkgconfig"
 export PKG_CONFIG_LIBDIR="/mingw64/lib/pkgconfig"
-WORKDIR="/c/Develop/Desktop/mpv"
+WORKDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREFIX="$WORKDIR/install"
 JOBS=$(nproc)
 
