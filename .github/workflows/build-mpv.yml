@@ -266,16 +266,35 @@ jobs:
           make -j$(sysctl -n hw.ncpu)
           make install
 
+      - name: Build libplacebo
+        run: |
+          git clone --depth 1 https://code.videolan.org/videolan/libplacebo.git src/libplacebo
+          cd src/libplacebo
+          meson setup build \
+            --prefix="${{ github.workspace }}/install" \
+            --libdir=lib \
+            --default-library=static \
+            --buildtype=release \
+            -Ddemos=false \
+            -Dvulkan=disabled \
+            -Dopengl=disabled \
+            -Dshaderc=disabled \
+            -Dlcms=disabled \
+            -Dxxhash=disabled
+          ninja -C build install
+
       - name: Build MPV
         run: |
           cd src
           git clone --depth 1 https://github.com/mpv-player/mpv.git mpv
           cd mpv
-          export PKG_CONFIG_PATH="${{ github.workspace }}/install/lib/pkgconfig:$(brew --prefix openssl)/lib/pkgconfig:$(brew --prefix libplacebo)/lib/pkgconfig:$(brew --prefix libass)/lib/pkgconfig:$PKG_CONFIG_PATH"
+          export PKG_CONFIG_PATH="${{ github.workspace }}/install/lib/pkgconfig:$(brew --prefix openssl)/lib/pkgconfig:$(brew --prefix libass)/lib/pkgconfig:$PKG_CONFIG_PATH"
           meson setup build \
             --prefix="${{ github.workspace }}/install" \
             --buildtype=release \
             --strip \
+            -Dc_link_args="-lc++" \
+            -Dcpp_link_args="-lc++" \
             -Db_lto=true \
             -Dgpl=true \
             -Dcplayer=true \
@@ -332,11 +351,17 @@ jobs:
             -Degl=disabled \
             -Dxv=disabled
           ninja -C build -j$(sysctl -n hw.ncpu)
-          cp build/mpv ${{ github.workspace }}/mpv-macos
+
+      - name: Bundle macOS dependencies
+        run: |
+          brew install dylibbundler
+          mkdir -p ${{ github.workspace }}/dist
+          cp src/mpv/build/mpv ${{ github.workspace }}/dist/mpv-macos
+          dylibbundler -b -x ${{ github.workspace }}/dist/mpv-macos -d ${{ github.workspace }}/dist/ -p @executable_path/ -of
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: mpv-macos
-          path: mpv-macos
+          path: ${{ github.workspace }}/dist
           retention-days: 1
