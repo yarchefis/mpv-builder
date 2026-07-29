@@ -81,7 +81,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y meson ninja-build nasm pkg-config libssl-dev libasound2-dev libpulse-dev libjack-dev libplacebo-dev libass-dev git build-essential
+          sudo apt-get install -y meson ninja-build nasm pkg-config libssl-dev libasound2-dev libpulse-dev libpipewire-0.3-dev libjack-dev libplacebo-dev libass-dev git build-essential
 
       - name: Build FFmpeg
         run: |
