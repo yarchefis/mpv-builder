@@ -360,6 +360,12 @@ jobs:
           cp src/mpv/build/mpv ${{ github.workspace }}/dist/mpv-macos
           dylibbundler -b -x ${{ github.workspace }}/dist/mpv-macos -d ${{ github.workspace }}/dist/ -p @executable_path/ -of
 
+      - name: Test macOS binary
+        run: |
+          chmod +x ${{ github.workspace }}/dist/mpv-macos
+          ${{ github.workspace }}/dist/mpv-macos --version
+          ${{ github.workspace }}/dist/mpv-macos --ao=help
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
