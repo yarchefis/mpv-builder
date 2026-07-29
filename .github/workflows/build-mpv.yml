@@ -364,6 +364,8 @@ jobs:
             echo "Deleted duplicate rpath"
           done
           install_name_tool -add_rpath @executable_path/ ${{ github.workspace }}/dist/mpv-macos
+          # Re-sign the binary after all header modifications to prevent SIGKILL on launch
+          codesign --force -s - ${{ github.workspace }}/dist/mpv-macos
 
       - name: Test macOS binary
         run: |
