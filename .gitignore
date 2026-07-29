@@ -15,3 +15,6 @@ mpv.exe
 # OS generated files
 .DS_Store
 Thumbs.db
+
+fromgit/
+fromgit/*

@@ -128,6 +128,7 @@ jobs:
           meson setup build \
             --prefix="${{ github.workspace }}/install" \
             --libdir=lib \
+            --default-library=static \
             --buildtype=release \
             -Ddemos=false \
             -Dvulkan=disabled \
