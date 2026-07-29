@@ -108,7 +108,7 @@ jobs:
             --disable-encoders \
             --disable-muxers \
             --disable-filters \
-            --enable-filter=aresample,volume,pan \
+            --enable-filter=aresample,volume,pan,equalizer,lowshelf,highshelf,notch,lowpass,highpass,bandpass,aformat,anull,atrim \
             --disable-decoders \
             --enable-decoder=flac,mp3,aac,alac,vorbis,opus,pcm_s16le,pcm_s24le,pcm_s32le,pcm_f32le \
             --disable-demuxers \
@@ -252,7 +252,7 @@ jobs:
             --disable-encoders \
             --disable-muxers \
             --disable-filters \
-            --enable-filter=aresample,volume,pan \
+            --enable-filter=aresample,volume,pan,equalizer,lowshelf,highshelf,notch,lowpass,highpass,bandpass,aformat,anull,atrim \
             --disable-decoders \
             --enable-decoder=flac,mp3,aac,alac,vorbis,opus,pcm_s16le,pcm_s24le,pcm_s32le,pcm_f32le \
             --disable-demuxers \

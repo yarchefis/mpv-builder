@@ -102,6 +102,14 @@ echo "Configuring FFmpeg (minimal audio-only)..."
     --enable-filter=anull \
     --enable-filter=atrim \
     --enable-filter=volume \
+    --enable-filter=equalizer \
+    --enable-filter=lowshelf \
+    --enable-filter=highshelf \
+    --enable-filter=notch \
+    --enable-filter=lowpass \
+    --enable-filter=highpass \
+    --enable-filter=bandpass \
+    --enable-filter=pan \
     --disable-protocols \
     --enable-protocol=file \
     --enable-protocol=http \
