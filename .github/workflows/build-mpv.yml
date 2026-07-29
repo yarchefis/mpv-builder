@@ -127,6 +127,7 @@ jobs:
           cd src/libplacebo
           meson setup build \
             --prefix="${{ github.workspace }}/install" \
+            --libdir=lib \
             --buildtype=release \
             -Ddemos=false \
             -Dvulkan=disabled \
