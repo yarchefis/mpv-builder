@@ -132,7 +132,7 @@ jobs:
             -Dvulkan=disabled \
             -Dopengl=disabled \
             -Dshaderc=disabled \
-            -Dlcms2=disabled \
+            -Dlcms=disabled \
             -Dxxhash=disabled
           ninja -C build install
 
