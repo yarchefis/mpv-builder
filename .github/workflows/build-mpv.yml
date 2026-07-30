@@ -89,6 +89,7 @@ jobs:
           cd src
           git clone --depth 1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
           cd ffmpeg
+          git apply ${{ github.workspace }}/patches/ffmpeg-no-end-seek.patch
           ./configure \
             --prefix="${{ github.workspace }}/install" \
             --enable-static \
@@ -233,6 +234,7 @@ jobs:
           cd src
           git clone --depth 1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
           cd ffmpeg
+          git apply ${{ github.workspace }}/patches/ffmpeg-no-end-seek.patch
           ./configure \
             --prefix="${{ github.workspace }}/install" \
             --enable-static \

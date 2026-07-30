@@ -32,6 +32,14 @@ fi
 
 cd ffmpeg
 
+# Apply patch if not already applied
+if git apply --check "$WORKDIR/patches/ffmpeg-no-end-seek.patch" 2>/dev/null; then
+    echo "Applying FFmpeg patch..."
+    git apply "$WORKDIR/patches/ffmpeg-no-end-seek.patch"
+else
+    echo "FFmpeg patch already applied or cannot be applied."
+fi
+
 # Clean previous build if exists
 make distclean 2>/dev/null || true
 
