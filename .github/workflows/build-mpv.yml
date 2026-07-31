@@ -218,7 +218,14 @@ jobs:
 
   build-macos:
     if: ${{ inputs.build-macos }}
-    runs-on: macos-latest
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-latest
+          - arch: x86_64
+            runner: macos-13
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -359,25 +366,25 @@ jobs:
         run: |
           brew install dylibbundler
           mkdir -p ${{ github.workspace }}/dist
-          cp src/mpv/build/mpv ${{ github.workspace }}/dist/mpv-macos
-          dylibbundler -b -x ${{ github.workspace }}/dist/mpv-macos -d ${{ github.workspace }}/dist/ -p @executable_path/ -of
+          cp src/mpv/build/mpv ${{ github.workspace }}/dist/mpv-macos-${{ matrix.arch }}
+          dylibbundler -b -x ${{ github.workspace }}/dist/mpv-macos-${{ matrix.arch }} -d ${{ github.workspace }}/dist/ -p @executable_path/ -of
           # Remove duplicate rpaths to prevent macOS dyld abort trap: 6
-          while install_name_tool -delete_rpath @executable_path/ ${{ github.workspace }}/dist/mpv-macos 2>/dev/null; do
+          while install_name_tool -delete_rpath @executable_path/ ${{ github.workspace }}/dist/mpv-macos-${{ matrix.arch }} 2>/dev/null; do
             echo "Deleted duplicate rpath"
           done
-          install_name_tool -add_rpath @executable_path/ ${{ github.workspace }}/dist/mpv-macos
+          install_name_tool -add_rpath @executable_path/ ${{ github.workspace }}/dist/mpv-macos-${{ matrix.arch }}
           # Re-sign the binary after all header modifications to prevent SIGKILL on launch
-          codesign --force -s - ${{ github.workspace }}/dist/mpv-macos
+          codesign --force -s - ${{ github.workspace }}/dist/mpv-macos-${{ matrix.arch }}
 
       - name: Test macOS binary
         run: |
-          chmod +x ${{ github.workspace }}/dist/mpv-macos
-          ${{ github.workspace }}/dist/mpv-macos --version
-          ${{ github.workspace }}/dist/mpv-macos --ao=help
+          chmod +x ${{ github.workspace }}/dist/mpv-macos-${{ matrix.arch }}
+          ${{ github.workspace }}/dist/mpv-macos-${{ matrix.arch }} --version
+          ${{ github.workspace }}/dist/mpv-macos-${{ matrix.arch }} --ao=help
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mpv-macos
+          name: mpv-macos-${{ matrix.arch }}
           path: ${{ github.workspace }}/dist
           retention-days: 1
